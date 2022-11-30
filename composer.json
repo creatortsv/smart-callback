@@ -1,0 +1,19 @@
+{
+    "require": {
+        "php": ">=7.3|8.1",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Creatortsv\\CallableInstance\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Creatortsv\\CallableInstance\\Tests\\": "tests/"
+        }
+    }
+}

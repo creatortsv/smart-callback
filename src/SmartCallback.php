@@ -2,13 +2,9 @@
 
 namespace Creatortsv\SmartCallback;
 
-use Closure;
+use Creatortsv\SmartCallback\Argument\ArgumentManager;
 use Creatortsv\SmartCallback\Argument\Resolver\ArgumentResolverInterface;
-use Creatortsv\SmartCallback\Argument\Resolver\DefaultArgumentResolver;
-use Creatortsv\SmartCallback\Argument\Resolver\InputArgumentResolver;
 use ReflectionException;
-use ReflectionFunction;
-use ReflectionParameter;
 
 /**
  * @template T
@@ -20,15 +16,7 @@ final class SmartCallback implements SmartCallbackInterface
      */
     private $original;
 
-    /**
-     * @var array<ArgumentResolverInterface>
-     */
-    private readonly array $resolvers;
-
-    /**
-     * @var array<ReflectionParameter>
-     */
-    private readonly array $parameters;
+    private readonly ArgumentManager $argumentManager;
 
     /**
      * @throws ReflectionException
@@ -36,19 +24,7 @@ final class SmartCallback implements SmartCallbackInterface
     public function __construct(callable $callback, ArgumentResolverInterface ...$argumentResolvers)
     {
         $this->original = $callback;
-        $this->resolvers = [
-            new InputArgumentResolver(),
-            new DefaultArgumentResolver(),
-            ...$argumentResolvers,
-        ];
-
-        $reflection = new ReflectionFunction(
-            function: $callback instanceof Closure
-                ? $callback
-                : $callback(...),
-        );
-
-        $this->parameters = $reflection->getParameters();
+        $this->argumentManager = ArgumentManager::create($callback, ...$argumentResolvers);
     }
 
     public function getOriginal(): callable
@@ -56,23 +32,17 @@ final class SmartCallback implements SmartCallbackInterface
         return $this->original;
     }
 
+    public function hasArguments(): bool
+    {
+        return (bool) $this->argumentManager->count();
+    }
+
     /**
      * @inheritDoc
      */
     public function __invoke(mixed ...$args): mixed
     {
-        foreach ($this->parameters as $parameter) {
-            if (!array_key_exists($parameter->getName(), $args) ||
-                !array_key_exists($parameter->getPosition(), $args)) {
-                // TODO: resolvers
-
-                continue;
-            }
-
-            $args[$parameter->getName()] ??= $args[$parameter->getPosition()];
-        }
-
-        reset($this->resolvers);
+        $args = $this->argumentManager->resolveArguments(input: $args);
 
         return ($this->original)(...$args);
     }

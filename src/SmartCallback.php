@@ -6,12 +6,14 @@ use Closure;
 use Creatortsv\SmartCallback\Argument\Resolver\ArgumentResolverInterface;
 use Creatortsv\SmartCallback\Argument\Resolver\DefaultArgumentResolver;
 use Creatortsv\SmartCallback\Argument\Resolver\InputArgumentResolver;
+use ReflectionException;
 use ReflectionFunction;
+use ReflectionParameter;
 
 /**
  * @template T
  */
-class SmartCallback implements SmartCallbackIterface
+final class SmartCallback implements SmartCallbackInterface
 {
     /**
      * @var callable
@@ -21,23 +23,32 @@ class SmartCallback implements SmartCallbackIterface
     /**
      * @var array<ArgumentResolverInterface>
      */
-    private array $resolvers;
+    private readonly array $resolvers;
 
-    private string $name;
+    /**
+     * @var array<ReflectionParameter>
+     */
+    private readonly array $parameters;
 
-    private ReflectionFunction $reflection; 
-
-    public function __construct(SmartCallbackIterface $smartCallback, callable $callback, ArgumentResolverInterface ...$argumentResolvers)
+    /**
+     * @throws ReflectionException
+     */
+    public function __construct(callable $callback, ArgumentResolverInterface ...$argumentResolvers)
     {
-        is_callable($callback, callable_name: $this->name);
-
         $this->original = $callback;
-        $this->resolvers = [new InputArgumentResolver(), new DefaultArgumentResolver(), ...$argumentResolvers];
-        $this->reflection = new ReflectionFunction(
-            $callback instanceof Closure
+        $this->resolvers = [
+            new InputArgumentResolver(),
+            new DefaultArgumentResolver(),
+            ...$argumentResolvers,
+        ];
+
+        $reflection = new ReflectionFunction(
+            function: $callback instanceof Closure
                 ? $callback
                 : $callback(...),
-        );        
+        );
+
+        $this->parameters = $reflection->getParameters();
     }
 
     public function getOriginal(): callable
@@ -46,12 +57,11 @@ class SmartCallback implements SmartCallbackIterface
     }
 
     /**
-     * @param T $mixed
-     * @return T
+     * @inheritDoc
      */
     public function __invoke(mixed ...$args): mixed
     {
-        foreach ($this->reflection->getParameters() as $parameter) {
+        foreach ($this->parameters as $parameter) {
             if (!array_key_exists($parameter->getName(), $args) ||
                 !array_key_exists($parameter->getPosition(), $args)) {
                 // TODO: resolvers
@@ -60,6 +70,10 @@ class SmartCallback implements SmartCallbackIterface
             }
 
             $args[$parameter->getName()] ??= $args[$parameter->getPosition()];
-        }   
+        }
+
+        reset($this->resolvers);
+
+        return ($this->original)(...$args);
     }
 }

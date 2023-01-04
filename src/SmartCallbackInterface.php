@@ -5,7 +5,7 @@ namespace Creatortsv\SmartCallback;
 /**
  * @template T
  */
-interface SmartCallbackIterface
+interface SmartCallbackInterface
 {
     /**
      * @param T ...$args

@@ -7,7 +7,7 @@ use Iterator;
 
 class InputArgumentResolver implements ArgumentResolverInterface
 {
-    public function __invoke(Argument $argument, array $passed): Iterator
+    public function __invoke(Argument $argument, array $passed, array $resolved): Iterator
     {
         if (!array_key_exists($argument->name, $passed) ||
             !array_key_exists($argument->position, $passed)) {

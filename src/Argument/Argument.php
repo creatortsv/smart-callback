@@ -40,13 +40,13 @@ final class Argument
         $this->resolved = $state;
     }
 
-    public static function create(ReflectionParameter $parameter): self
+    public static function create(ReflectionParameter $parameter): Argument
     {
         if (is_string($types = TypeExtractor::extract($parameter->getType()))) {
             $types = [$types];
         }
 
-        return new static(
+        return new Argument(
             $parameter->getName(),
             $parameter->getPosition(),
             $parameter->isOptional(),

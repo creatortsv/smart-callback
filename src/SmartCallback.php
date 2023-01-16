@@ -2,8 +2,9 @@
 
 namespace Creatortsv\SmartCallback;
 
-use Creatortsv\SmartCallback\Argument\ArgumentManager;
-use Creatortsv\SmartCallback\Argument\Resolver\ArgumentResolverInterface;
+use Creatortsv\SmartCallback\Argument\ArgumentIterator;
+use Creatortsv\SmartCallback\Context\ContextInterface;
+use Creatortsv\SmartCallback\Resolver\ResolverIterator;
 use ReflectionException;
 
 /**
@@ -16,15 +17,18 @@ final class SmartCallback implements SmartCallbackInterface
      */
     private $original;
 
-    private readonly ArgumentManager $argumentManager;
+    private readonly ArgumentIterator $arguments;
 
     /**
      * @throws ReflectionException
      */
-    public function __construct(callable $callback, ArgumentResolverInterface ...$argumentResolvers)
-    {
+    public function __construct(
+        callable $callback,
+        private readonly ResolverIterator $resolvers,
+        private readonly ContextInterface $context,
+    ) {
         $this->original = $callback;
-        $this->argumentManager = ArgumentManager::create($callback, ...$argumentResolvers);
+        $this->arguments = new ArgumentIterator($this->original);
     }
 
     public function getOriginal(): callable
@@ -34,7 +38,7 @@ final class SmartCallback implements SmartCallbackInterface
 
     public function hasArguments(): bool
     {
-        return (bool) $this->argumentManager->count();
+        return (bool) $this->arguments->count();
     }
 
     /**
@@ -42,8 +46,6 @@ final class SmartCallback implements SmartCallbackInterface
      */
     public function __invoke(mixed ...$args): mixed
     {
-        $args = $this->argumentManager->resolveArguments(input: $args);
-
         return ($this->original)(...$args);
     }
 }

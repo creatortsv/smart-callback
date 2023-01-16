@@ -2,9 +2,10 @@
 
 namespace Creatortsv\SmartCallback\Argument\Resolver;
 
+use Creatortsv\SmartCallback\Resolver\ResolverInterface;
 use Iterator;
 
-class DefaultArgumentResolver implements ArgumentResolverInterface
+class DefaultResolver implements ResolverInterface
 {
     public function __invoke(string $name, ?mixed $resolvedValue = null, array|string ...$types): Iterator
     {

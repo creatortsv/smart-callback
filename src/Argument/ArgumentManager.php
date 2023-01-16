@@ -2,52 +2,63 @@
 
 namespace Creatortsv\SmartCallback\Argument;
 
-use ArrayIterator;
-use Closure;
-use Countable;
-use Creatortsv\SmartCallback\Argument\Resolver\ArgumentResolverInterface;
-use Creatortsv\SmartCallback\Argument\Resolver\DefaultArgumentResolver;
-use Creatortsv\SmartCallback\Argument\Resolver\InputArgumentResolver;
-use InfiniteIterator;
-use ReflectionFunction;
+use Creatortsv\CombinationIterator\CombinationIterator;
+use Creatortsv\SmartCallback\Resolver\ResolverInterface;
+use Creatortsv\SmartCallback\Resolver\ResolverIterator;
+use Creatortsv\SmartCallback\Resolver\ShouldStopResolvingInterface;
+use SplObjectStorage;
 
 /**
+ * @package creatortsv/smart-callback
  * @template T
  */
-final class ArgumentManager implements Countable
+final class ArgumentManager
 {
     /**
-     * @var array<array-key<int>, T>
+     * @var SplObjectStorage<Argument, T[]>
      */
-    private array $passed = [];
+    private SplObjectStorage $resolved;
 
     /**
-     * @var array<array-key<int>, T>
+     * @var CombinationIterator<int[], array{0:Argument, 1:ResolverInterface}>
      */
-    private array $resolved = [];
+    private readonly CombinationIterator $iterator;
 
-    public function count(): int
+    public function __construct(
+        private readonly ArgumentIterator $arguments,
+        private readonly ResolverIterator $resolvers,
+    ) {
+        $this->resolved = new SplObjectStorage();
+        $this->iterator = new CombinationIterator(
+            $this->arguments,
+            $this->resolvers,
+        );
+    }
+
+    public function reset(): void
     {
-        return count($this->arguments);
+        $this->resolved->removeAll($this->resolved);
+        $this->iterator->rewind();
+        $this->arguments->reset();
     }
 
     /**
-     * @param array<array-key<int>, T> $input
-     * @return array<array-key<int>, T>
+     * @param T[] $context
+     * @return T[]
      */
-    public function resolveArguments(array $input): array
+    public function resolve(array $context): array
     {
         $this->reset();
 
         $passed = [];
 
-        array_walk($this->arguments, $fn = function (Argument $argument) use ($input, &$passed, &$fn): void {
-            if (!array_key_exists($argument->name, $input) &&
-                !array_key_exists($argument->position, $input)) {
+        array_walk($this->arguments, $fn = function (Argument $argument) use ($context, &$passed, &$fn): void {
+            if (!array_key_exists($argument->name, $context) &&
+                !array_key_exists($argument->position, $context)) {
                 return;
             }
 
-            $passed[$argument->position] = $input[$argument->name] ?? $input[$argument->position];
+            $passed[$argument->position] = $context[$argument->name] ?? $context[$argument->position];
 
             if ($argument->isVariadic) {
                 $position = $argument->position + 1;
@@ -66,61 +77,19 @@ final class ArgumentManager implements Countable
 
         ksort($passed, SORT_NUMERIC);
 
-        $resolvers = new InfiniteIterator(new ArrayIterator($this->resolvers));
-        $arguments = new InfiniteIterator(new ArrayIterator($this->arguments));
-        
-        foreach ($this->arguments as $argument) {
-            if ($argument->isResolved()) {
-                break;
-            }
+        foreach ($this->iterator as $iteration) {
+            [
+                $argument,
+                $resolver,
+            ] = $iteration;
 
-            foreach ($this->resolvers as $resolver) {
-                $resolver($argument, $passed, $this->resolved);
+            $this->resolved[$argument] = $resolver($argument, [], []);
+
+            if ($argument->isResolved() !== true) {
+                $resolver instanceof ShouldStopResolvingInterface && $argument->setResolved($resolver->stop());
             }
         }
 
-        return $this->resolved;
-    }
-
-    public static function create(callable $callback, ArgumentResolverInterface ...$resolvers): ArgumentManager
-    {
-        $reflection = new ReflectionFunction(
-            function: $callback instanceof Closure
-                ? $callback
-                : $callback(...),
-        );
-
-        $arguments = array_map(Argument::create(...), $reflection->getParameters());
-
-        return new ArgumentManager($arguments, [new InputArgumentResolver(), new DefaultArgumentResolver(), ...$resolvers]);
-    }
-
-    /**
-     * @param array<Argument> $arguments
-     * @param array<ArgumentResolverInterface> $resolvers
-     */
-    private function __construct(
-        private readonly array $arguments,
-        private readonly array $resolvers,
-    ) {
-    }
-
-    /**
-     * @param array<array-key<int>, T> $passed
-     */
-    private function setPassed(array $passed): void
-    {
-
-    }
-
-    private function reset(): void
-    {
-        $this->passed = [];
-        $this->resolved = [];
-
-        array_walk($this->arguments, static fn (Argument $argument) => $argument->setResolved(false));
-
-        reset($this->arguments);
-        reset($this->resolvers);
+        return iterator_to_array($this->resolved);
     }
 }

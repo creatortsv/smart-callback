@@ -2,17 +2,17 @@
 
 namespace Creatortsv\SmartCallback\Argument;
 
-use Creatortsv\SmartCallback\Helper\TypeExtractor;
+use Creatortsv\SmartCallback\Support\TypeExtractor;
 use ReflectionParameter;
 
 /**
- * @teplate TKey of array-key<string|int>
+ * @template TKey of array-key<string|int>
  * @template TypeValue of array<TKey, string>|string
  */
 final class Argument
 {
     /**
-     * @var array<TKey, TypeValue> $types
+     * @param array<TKey, TypeValue> $types
      */
     public function __construct(
         public readonly string $name,
@@ -38,21 +38,5 @@ final class Argument
     public function setResolved(bool $state): void
     {
         $this->resolved = $state;
-    }
-
-    public static function create(ReflectionParameter $parameter): Argument
-    {
-        if (is_string($types = TypeExtractor::extract($parameter->getType()))) {
-            $types = [$types];
-        }
-
-        return new Argument(
-            $parameter->getName(),
-            $parameter->getPosition(),
-            $parameter->isOptional(),
-            $parameter->isVariadic(),
-            $parameter->allowsNull(),
-            $types,
-        );
     }
 }

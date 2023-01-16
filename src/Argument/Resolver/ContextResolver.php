@@ -3,9 +3,10 @@
 namespace Creatortsv\SmartCallback\Argument\Resolver;
 
 use Creatortsv\SmartCallback\Argument\Argument;
+use Creatortsv\SmartCallback\Resolver\ResolverInterface;
 use Iterator;
 
-class InputArgumentResolver implements ArgumentResolverInterface
+class ContextResolver implements ResolverInterface
 {
     public function __invoke(Argument $argument, array $passed, array $resolved): Iterator
     {
@@ -18,7 +19,7 @@ class InputArgumentResolver implements ArgumentResolverInterface
             ?? $passed[$argument->position]
             ?? null;
 
-        $resolved = $val !== null || ($val === null && $argument->allowsNull);
+        $resolved = $val !== null || $argument->allowsNull;
         $argument->setResolved($resolved);
 
         yield $val;

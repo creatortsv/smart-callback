@@ -1,6 +1,6 @@
 <?php
 
-namespace Creatortsv\SmartCallback\Helper;
+namespace Creatortsv\SmartCallback\Support;
 
 use ReflectionIntersectionType;
 use ReflectionNamedType;

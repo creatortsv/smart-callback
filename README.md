@@ -12,11 +12,13 @@ composer install creatortsv/smart-callback
 ## Usage
 
 ```php
-use Creatortsv\SmartCallback\SmartCallback;
-use Creatortsv\SmartCallback\NamedCallback;
+use Creatortsv\SmartCallback\Argument\ArgumentManager;use Creatortsv\SmartCallback\NamedSmartCallback;use Creatortsv\SmartCallback\SmartCallback;
 
-$smart = new SmartCallback('str_replace');
-$named = new NamedCallback($smart, 'I am the smart function');
+$argumentManager = new ArgumentManager(
+    new MySpecificArgumentResolver(),
+    new MyDefaultArgumentResolver(),
+);
 
-$named(subject: 'I am the one');
+$smart = new SmartCallback('str_replace', $argumentManager);
+$smart(subject: 'I am the one');
 ```

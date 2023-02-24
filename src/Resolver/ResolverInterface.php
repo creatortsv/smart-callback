@@ -9,5 +9,5 @@ use Creatortsv\SmartCallback\Argument\Argument;
  */
 interface ResolverInterface
 {
-    public function __invoke(Argument $argument, array $resolved, array $context): void;
+    public function __invoke(Argument $argument, array $context, array $resolved): void;
 }

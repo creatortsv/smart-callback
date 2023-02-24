@@ -2,17 +2,13 @@
 
 namespace Creatortsv\SmartCallback\Argument;
 
-use Creatortsv\SmartCallback\Support\TypeExtractor;
-use ReflectionParameter;
-
 /**
- * @template TKey of array-key<string|int>
- * @template TypeValue of array<TKey, string>|string
+ * @template T of object
  */
 final class Argument
 {
     /**
-     * @param array<TKey, TypeValue> $types
+     * @param array<int, class-string<T>|string> $types
      */
     public function __construct(
         public readonly string $name,

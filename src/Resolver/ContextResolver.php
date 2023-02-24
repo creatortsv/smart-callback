@@ -1,9 +1,8 @@
 <?php
 
-namespace Creatortsv\SmartCallback\Argument\Resolver;
+namespace Creatortsv\SmartCallback\Resolver;
 
 use Creatortsv\SmartCallback\Argument\Argument;
-use Creatortsv\SmartCallback\Resolver\ResolverInterface;
 use Iterator;
 
 class ContextResolver implements ResolverInterface

@@ -2,17 +2,18 @@
 
 namespace Creatortsv\SmartCallback\Resolver;
 
+use ArrayAccess;
 use ArrayIterator;
-use Creatortsv\SmartCallback\Argument\Resolver\ContextResolver;
-use Creatortsv\SmartCallback\Argument\Resolver\DefaultResolver;
+use Iterator;
 
 /**
  * @package creatortsv/smart-callback
  *
- * @template-extends ArrayIterator<int, ResolverInterface>
+ * @template-implements Iterator<int, ResolverInterface>
+ * @template-extends ArrayAccess<int, ResolverInterface>
  *
- * @method ResolverInterface current()
- * @method array<ResolverInterface> getArrayCopy()
+ * @method ResolverInterface|null current()
+ * @method array<int, ResolverInterface> getArrayCopy()
  */
 final class ResolverIterator extends ArrayIterator
 {

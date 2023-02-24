@@ -3,49 +3,45 @@
 namespace Creatortsv\SmartCallback;
 
 use Creatortsv\SmartCallback\Argument\ArgumentIterator;
-use Creatortsv\SmartCallback\Context\ContextInterface;
-use Creatortsv\SmartCallback\Resolver\ResolverIterator;
+use Creatortsv\SmartCallback\Argument\ArgumentManagerInterface;
 use ReflectionException;
 
 /**
- * @template T
+ * @template TOriginal of callable
  */
-final class SmartCallback implements SmartCallbackInterface
+final class SmartCallback
 {
     /**
-     * @var callable
+     * @var TOriginal
      */
     private $original;
 
-    private readonly ArgumentIterator $arguments;
+    private readonly ArgumentIterator $argumentIterator;
 
     /**
+     * @param TOriginal $callback
      * @throws ReflectionException
+     *
+     * @noinspection PhpDocSignatureInspection
      */
-    public function __construct(
-        callable $callback,
-        private readonly ResolverIterator $resolvers,
-        private readonly ContextInterface $context,
-    ) {
+    public function __construct(callable $callback, private readonly ArgumentManagerInterface $argumentManager)
+    {
         $this->original = $callback;
-        $this->arguments = new ArgumentIterator($this->original);
+        $this->argumentIterator = new ArgumentIterator($callback);
     }
 
+    /**
+     * @return TOriginal
+     */
     public function getOriginal(): callable
     {
         return $this->original;
     }
 
-    public function hasArguments(): bool
-    {
-        return (bool) $this->arguments->count();
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function __invoke(mixed ...$args): mixed
     {
-        return ($this->original)(...$args);
+        $this->argumentIterator->reset();
+
+        return ($this->original)(...$this->argumentManager->resolve($this->argumentIterator, ...$args));
     }
 }

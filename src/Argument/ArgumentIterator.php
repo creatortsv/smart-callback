@@ -4,19 +4,22 @@ namespace Creatortsv\SmartCallback\Argument;
 
 use ArrayIterator;
 use Closure;
-use Creatortsv\SmartCallback\Support\TypeExtractor;
 use FilterIterator;
 use ReflectionException;
 use ReflectionFunction;
+use ReflectionIntersectionType;
+use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionType;
+use ReflectionUnionType;
 
 /**
  * @package creatortsv/smart-callback
  *
  * @template-extends FilterIterator<int, Argument>
  *
- * @method Argument current()
- * @method array<Argument> getArrayCopy()
+ * @method Argument|null current()
+ * @method array<int, Argument> getArrayCopy()
  */
 final class ArgumentIterator extends FilterIterator
 {
@@ -31,29 +34,24 @@ final class ArgumentIterator extends FilterIterator
                 : $callback(...),
         );
 
-        $iterator = new ArrayIterator(array_map($this::createItem(...), $reflection->getParameters()));
-
-        parent::__construct($iterator);
+        parent::__construct(
+            new ArrayIterator(array_map($this->createArgument(...), $reflection->getParameters())),
+        );
     }
 
     public function accept(): bool
     {
-        $argument = $this
-            ->getInnerIterator()
-            ->current();
-
-        return !$argument instanceof Argument
-            || !$argument->isResolved();
+        return !$this->getInnerIterator()->current()?->isResolved();
     }
 
     public function reset(): void
     {
-        array_map(static fn (Argument $argument) => $argument->setResolved(false), iterator_to_array($this->getInnerIterator()));
+        array_map($this->resetSingleArgument(...), iterator_to_array($this->getInnerIterator()));
     }
 
-    private static function createItem(ReflectionParameter $parameter): Argument
+    private function createArgument(ReflectionParameter $parameter): Argument
     {
-        if (is_string($types = TypeExtractor::extract($parameter->getType()))) {
+        if (is_string($types = $this->extractType($parameter->getType()))) {
             $types = [$types];
         }
 
@@ -65,5 +63,24 @@ final class ArgumentIterator extends FilterIterator
             $parameter->allowsNull(),
             $types,
         );
+    }
+
+    private function resetSingleArgument(Argument $argument): void
+    {
+        $argument->setResolved(false);
+    }
+
+    private function extractType(?ReflectionType $type = null): array|string
+    {
+        if ($type instanceof ReflectionUnionType ||
+            $type instanceof ReflectionIntersectionType) {
+            return array_map($this->extractType(...), $type->getTypes());
+        }
+
+        if ($type instanceof ReflectionNamedType) {
+            return $type->getName();
+        }
+
+        return [];
     }
 }
